@@ -1,0 +1,29 @@
+{
+  "name": "sgavka/test",
+  "type": "project",
+  "description": "blank",
+  "keywords": [],
+  "license": "MIT",
+  "require": {
+    "php": "^8.1",
+    "ext-dom": "*",
+    "ext-libxml": "*"
+  },
+  "require-dev": {
+  },
+  "autoload": {
+    "psr-4": {}
+  },
+  "autoload-dev": {
+    "psr-4": {}
+  },
+  "scripts": {},
+  "extra": {},
+  "config": {
+    "optimize-autoloader": true,
+    "preferred-install": "dist",
+    "sort-packages": true
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}
