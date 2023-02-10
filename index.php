@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-class NewsParser
+abstract class NewsParserParser
 {
     private $pageUrl;
 
@@ -16,39 +16,69 @@ class NewsParser
         $dom = new DOMDocument();
 
         do {
-            libxml_use_internal_errors(true);
-            $dom->loadHTMLFile($this->pageUrl);
-            libxml_clear_errors();
+            $this->loadPage($dom);
 
-            $headings = $dom->getElementsByTagName('div');
-            /** @var DOMNode $heading */
-            foreach ($headings as $heading) {
-                if ($heading->getAttribute('class') === 'short-1-title') {
-                    $title = trim($heading->nodeValue);
-                    yield $title;
-                }
+            foreach ($this->extractHeadings($dom) as $heading) {
+                $title = trim($heading);
+                yield $title;
             }
         } while ($this->nextPage($dom));
     }
 
     private function nextPage(DOMDocument $dom): bool
     {
-        $aElements = $dom->getElementsByTagName('a');
-        /** @var DOMNode $aElement */
-        foreach ($aElements as $aElement) {
-            if ($aElement->nodeValue === 'Далі') {
-                $this->pageUrl = $aElement->getAttribute('href');
-                echo 'Page: ' . $this->pageUrl . PHP_EOL;
-
-                return true;
-            }
+        $nextPageUrl = $this->extractNextPageUrl($dom);
+        if ($nextPageUrl) {
+            $this->pageUrl = $nextPageUrl;
+            return true;
         }
 
         return false;
     }
+
+    abstract protected function extractNextPageUrl(DOMDocument $dom): ?string;
+
+    private function loadPage(DOMDocument $dom): void
+    {
+        libxml_use_internal_errors(true);
+        $dom->loadHTMLFile($this->pageUrl);
+        libxml_clear_errors();
+    }
+
+    /**
+     * @return Generator<string>
+     */
+    abstract protected function extractHeadings(DOMDocument $dom): Generator;
 }
 
-$parser = new NewsParser('https://molbuk.ua/index.php?do=lastnews');
+class MolBukParser extends NewsParserParser
+{
+    protected function extractNextPageUrl(DOMDocument $dom): ?string
+    {
+        $elements = $dom->getElementsByTagName('a');
+        /** @var DOMNode $element */
+        foreach ($elements as $element) {
+            if ($element->nodeValue === 'Далі') {
+                return $element->getAttribute('href');
+            }
+        }
+
+        return null;
+    }
+
+    protected function extractHeadings(DOMDocument $dom): Generator
+    {
+        $elements = $dom->getElementsByTagName('div');
+        /** @var DOMNode $element */
+        foreach ($elements as $element) {
+            if ($element->getAttribute('class') === 'short-1-title') {
+                yield $element->nodeValue;
+            }
+        }
+    }
+}
+
+$parser = new MolBukParser('https://molbuk.ua/index.php?do=lastnews');
 
 foreach ($parser->parseTitles() as $title) {
     echo $title . PHP_EOL;
